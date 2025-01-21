@@ -131,7 +131,7 @@ class Root(Tk):
         for i, entry in enumerate(self.data):
             ts, dur, excercise, flag = entry
             sample_file = 'tmp/sample_' + str(i).zfill(3) + '.mp3'
-            print('creatin sample', sample_file)
+            print('creating sample', sample_file)
             self.speech.make_sample(excercise, sample_file)
         print('all samples created', sample_file)
 
