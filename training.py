@@ -7,7 +7,8 @@ import time, pathlib
 
 data = """
 5 Start
-60 Rechtes Knie vorbereiten
+30 Rechtes Knie vorbereiten
+30 Noch 30 Sekunden
 30 Rechtes Bein zum Po
 30 Noch 30 Sekunden
 15 Rechtes Bein nach hinten
