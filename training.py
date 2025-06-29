@@ -5,7 +5,7 @@ from tkinter import Tk, Label, Button
 from tkinter import scrolledtext
 import time, pathlib
 
-data = """
+data_as_text = """
 5 Start
 30 Rechtes Knie vorbereiten
 30 Noch 30 Sekunden
@@ -80,32 +80,72 @@ class Speech:
         pygame.mixer.music.play()
 
 
-    # def speak(self, text):
-    #     tts = gTTS(text=text, lang="de")
-    #     self.count += 1
-    #     file = f"output{self.count % 2}.mp3"
-    #     tts.save(file)
+class ScrollText(tk.scrolledtext.ScrolledText):
+        def __init__(self, parent, data):
+            self.parent = parent
+            self.data = data
+            super().__init__()
+            self.bind("<Double-Button-1>", self.jump_to_line)
 
-    #     pygame.mixer.music.load(file)
-    #     pygame.mixer.music.play()
-
-
-        # while pygame.mixer.music.get_busy():
-        #     continue
+        def set_data(self, data):
+            self.data = data
 
 
+        def draw(self, data_as_text):
+            l = data_as_text.split('\n')
+
+            l = [s for s in l if len(s) > 0]
+
+            res = ''
+            for entry in l:
+                res = res + entry + '\n'
+
+            self.insert(tk.INSERT, res)
+
+
+        def jump_to_line(self, event):
+            # Get the index of the clicked position
+            index = self.index(tk.CURRENT)  # Get the index of the current cursor position
+            line_number = int(index.split('.')[0]) - 1  # Extract the line number
+            print(f"Double-clicked on line: {line_number}")
+
+
+            # set timer back, enabmle all entries
+            ts, dur, excercise, flag = self.data[line_number]
+            self.parent.sec = ts
+            for i in range(len(self.data)):
+                if i < line_number:
+                    self.data[i][3] = 0
+                else:
+                    self.data[i][3] = 1
+
+            if self.parent.running == False:
+                self.parent.toggle()
+
+
+        def highlight(self, line):
+            # Define a bold font
+            bold_font = ("Arial", 10, "bold")
+
+            # Apply a tag to the second line
+            bold_line = line
+
+            # Define a tag with bold font and red color
+            self.tag_add("bold", f"{bold_line}.0", f"{bold_line}.end")
+            self.tag_config("bold", font=bold_font, foreground="white", background='black')
 
 
 class Root(Tk):
     def __init__(self):
         super().__init__()
+        self.title('Training')
+        self.geometry('800x800')
 
         self.sec = 0
         self.running = False
         self.count_down = 0
 
-        self.data = []
-        self.prepare_data()
+        self.data = self.prepare_data(data_as_text)
 
         self.speech = Speech()
 
@@ -115,15 +155,18 @@ class Root(Tk):
         self.button1 = Button(self, text='Start', command=self.toggle)
         self.button1.pack()
 
-        self.text1 = scrolledtext.ScrolledText(self, height = 40)
-        self.draw()
-        self.text1.bind("<Double-Button-1>", self.jump_to_line)
+        self.text1 = ScrollText(self, self.data)
+        self.text1.pack(expand=True, fill='both')
+        self.text1.draw(data_as_text)
 
-        self.text1.pack()
         self.t_old = time.time()
 
-        # create all samples
-        self.create_all_samples()
+        #create all samples if needed
+        flag_path = 'tmp/finished.txt'
+        if not pathlib.Path(flag_path).is_file():
+            self.create_all_samples()
+            with open(flag_path,'w') as fin:
+                fin.write('finished the speech samples')
 
         self.update()
 
@@ -136,55 +179,17 @@ class Root(Tk):
             self.speech.make_sample(excercise, sample_file)
         print('all samples created', sample_file)
 
-    def jump_to_line(self, event):
-        # Get the index of the clicked position
-        index = self.text1.index(tk.CURRENT)  # Get the index of the current cursor position
-        line_number = int(index.split('.')[0]) - 1  # Extract the line number
-        print(f"Double-clicked on line: {line_number}")
-
-
-        # set timer back, enabmle all entries
-        ts, dur, excercise, flag = self.data[line_number]
-        self.sec = ts
-        for i in range(len(self.data)):
-            if i < line_number:
-                self.data[i][3] = 0
-            else:
-                self.data[i][3] = 1
-
-
-    def draw(self):
-        l = data.split('\n')
-        l = [s for s in l if len(s) > 0]
-
-        res = ''
-        for entry in l:
-            res = res + entry + '\n'
-
-        self.text1.insert(tk.INSERT, res)
-
-
-    def highlight(self, line):
-        # Define a bold font
-        bold_font = ("Arial", 10, "bold")
-
-        # Apply a tag to the second line
-        bold_line = line
-
-        # Define a tag with bold font and red color
-        self.text1.tag_add("bold", f"{bold_line}.0", f"{bold_line}.end")
-        self.text1.tag_config("bold", font=bold_font, foreground="white", background='black')
-
-    def prepare_data(self):
-        l = data.split('\n')
+    def prepare_data(self, data_as_text):
+        l = data_as_text.split('\n')
         l = [s for s in l if len(s) > 0]
         sec_cum = 0
+        res = []
         for entry in l:
             dur, txt = entry.split(maxsplit=1)
-            self.data.append([sec_cum, int(dur), txt, 1])
+            res.append([sec_cum, int(dur), txt, 1])
             sec_cum += int(dur)
-        # print(self.data)
-
+        return res
+    
     def toggle(self):
         if self.running == True:
             self.running = False
@@ -217,22 +222,20 @@ class Root(Tk):
         else:
             self.l1.config(text="0")
 
-
         # run through list, if entry is over time and not unflagged then play sample
         for i in range(len(self.data)):
             ts, dur, excercise, flag = self.data[i]
-
             if self.sec > ts and flag > 0:
                 print(self.data[i])
                 self.data[i][3] = 0 # flag to avoid retransmission
-                self.highlight(i + 1)
+                self.text1.highlight(i + 1)
                 self.count_down = dur
                 sample_file = 'tmp/sample_' + str(i).zfill(3) + '.mp3'
                 self.speech.output_sample(sample_file)
 
-
-root = Root()
-root.mainloop()
+if __name__ == '__main__':
+    root = Root()
+    root.mainloop()
 
 
 
