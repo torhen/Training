@@ -56,6 +56,7 @@ data_as_text = """
 15 Gewicht nach hinten verlagern
 15 Noch 15 Sekunden
 15 Auf allen vieren Rücken nach oben und unten
+30 Im Sitzen nach vorn beugen
 60 Rückentraining beginnen
 60 noch 3 Minuten
 60 noch 2 Minuten
