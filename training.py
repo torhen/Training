@@ -157,7 +157,7 @@ class Root(Tk):
         self.button1.pack()
 
         self.text1 = ScrollText(self, self.data)
-        self.text1.pack(expand=True, fill='both')
+        self.text1.pack(expand=True, fill='both', padx=10, pady=10)
         self.text1.draw(data_as_text)
 
         self.t_old = time.time()
